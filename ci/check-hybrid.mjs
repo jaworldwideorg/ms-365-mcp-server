@@ -17,8 +17,8 @@ const names = new Set(tools.map((t) => t.name));
 if (names.size !== eagerTools.length + 3 || !eagerTools.every((n) => names.has(n)))
   throw new Error('Unexpected hybrid tool surface');
 const bytes = Buffer.byteLength(JSON.stringify(tools));
-if (bytes > 250000)
-  throw new Error(`Hybrid schemas exceed the 250,000 byte deployment budget: ${bytes}`);
+if (bytes > 400000)
+  throw new Error(`Hybrid schemas exceed the 400,000 byte deployment budget: ${bytes}`);
 console.log(`Verified ${tools.length} tools; ${bytes} schema bytes`);
 await client.close();
 await server.close();

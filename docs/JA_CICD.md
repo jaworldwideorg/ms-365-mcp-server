@@ -2,7 +2,7 @@
 
 `JA build and deploy` runs on every push (all branches), or manual dispatch. It
 checks the exact commit, generates Graph clients, runs lint/format/typecheck/tests,
-builds, checks the 250,000-byte hybrid schema budget, pushes a commit-tagged image
+builds, checks the 400,000-byte hybrid schema budget, pushes a commit-tagged image
 to `jaworldwide.azurecr.io/librechat/mcp/microsoft-softeria`, then deploys its digest
 to ACA `mcp-microsoft-softeria`. Deployments are serialized. Branch pushes affect
 this test app; production approval gates are not configured.
@@ -34,7 +34,7 @@ Authentication:
 Repository variables: `ACR_LOGIN_SERVER`, `ACR_IMAGE_NAME`, `AZURE_CLIENT_ID`,
 `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `ACA_RESOURCE_GROUP`, `ACA_APP_NAME`.
 
-`ci/eager-tools.json` is deployment-specific: 33 direct mail/calendar/shared-access
+`ci/eager-tools.json` is deployment-specific: 57 direct mail/calendar/shared-access
 operations plus complete discovery. It does not narrow the discovery catalogue or
 permissions. Editing the list triggers CI/deployment and must satisfy the budget.
 No Entra credentials are checked into Git; updates preserve existing ACA settings.
@@ -50,3 +50,7 @@ without validating a shared/stateless PKCE and ticket strategy. Open major SDK
 upgrade PRs are not adopted until merged upstream and passing this fork's checks.
 CI measures tool definitions through the same schema-normalization handler as
 HTTP, without pruning fields or adding per-request measurement overhead.
+
+The expanded users/contacts/draft seed was measured at 353,344 bytes through the
+HTTP schema-normalization path. Its budget is 400,000 bytes to allow the approved
+expanded scope while remaining well below the earlier context-overflow surface.
