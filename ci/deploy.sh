@@ -19,10 +19,20 @@ for attempt in $(seq 1 40); do
   state=$(az containerapp show -n "$ACA_APP_NAME" -g "$ACA_RESOURCE_GROUP" --query '{latest:properties.latestRevisionName,ready:properties.latestReadyRevisionName,fqdn:properties.configuration.ingress.fqdn}' -o json)
   if jq -e '.latest == .ready and .ready != null' <<< "$state" >/dev/null; then
     fqdn=$(jq -r .fqdn <<< "$state")
-    curl --fail --silent --max-time 20 "https://$fqdn/" >/dev/null
-    curl --fail --silent --max-time 20 "https://$fqdn/.well-known/oauth-protected-resource" | jq -e '.authorization_servers | length > 0' >/dev/null
+    # ACA readiness can precede public ingress propagation; smoke checks retry
+    # inside the same bounded readiness budget rather than failing on one 502/503.
+    if ! curl --fail --silent --max-time 20 "https://$fqdn/" >/dev/null ||
+       ! curl --fail --silent --max-time 20 "https://$fqdn/.well-known/oauth-protected-resource" | jq -e '.authorization_servers | length > 0' >/dev/null; then
+      echo 'Waiting for public ingress and OAuth discovery'
+      sleep 15
+      continue
+    fi
     code=$(curl --silent --max-time 20 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"ci-auth-check","version":"1"}}}' "https://$fqdn/mcp")
-    test "$code" = 401
+    if [ "$code" != 401 ]; then
+      echo "Waiting for MCP authentication challenge (HTTP $code)"
+      sleep 15
+      continue
+    fi
     jq --arg image "$DEPLOY_IMAGE" --arg previous "$PREVIOUS_IMAGE" '. + {image:$image,previousImage:$previous}' <<< "$state" > deployment-evidence.json
     exit 0
   fi
