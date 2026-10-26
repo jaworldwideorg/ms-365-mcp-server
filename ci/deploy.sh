@@ -15,6 +15,11 @@ try:
  subprocess.run(['az','containerapp','update','-n',os.environ['ACA_APP_NAME'],'-g',os.environ['ACA_RESOURCE_GROUP'],'--yaml',path,'-o','none'],check=True)
 finally:os.unlink(path)
 PYTHON
+APP_ID=$(az containerapp show -n "$ACA_APP_NAME" -g "$ACA_RESOURCE_GROUP" --query id -o tsv)
+RUNNING_STATUS=$(az containerapp show -n "$ACA_APP_NAME" -g "$ACA_RESOURCE_GROUP" --query properties.runningStatus -o tsv)
+if [ "$RUNNING_STATUS" = Stopped ]; then
+  az rest --method post --url "https://management.azure.com${APP_ID}/start?api-version=2025-07-01" -o none
+fi
 for attempt in $(seq 1 40); do
   state=$(az containerapp show -n "$ACA_APP_NAME" -g "$ACA_RESOURCE_GROUP" --query '{latest:properties.latestRevisionName,ready:properties.latestReadyRevisionName,fqdn:properties.configuration.ingress.fqdn}' -o json)
   if jq -e '.latest == .ready and .ready != null' <<< "$state" >/dev/null; then
