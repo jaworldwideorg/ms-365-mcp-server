@@ -1,0 +1,51 @@
+name: JA daily upstream sync
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: ja-upstream-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: github.repository == 'jaworldwideorg/ms-365-mcp-server'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Attempt merge of upstream main
+        id: merge
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch https://github.com/softeria/ms-365-mcp-server.git main
+          if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'Upstream already incorporated.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git merge --no-ff --no-edit FETCH_HEAD
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+      - name: Test merged source
+        if: steps.merge.outputs.changed == 'true'
+        run: bash ci/check.sh && node ci/check-hybrid.mjs
+      - name: Push tested merge and explicitly trigger build/deploy
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push origin HEAD:main
+          gh workflow run ja-cicd.yml --ref main -f checkout_ref="$(git rev-parse HEAD)"
+      - name: Report blocked merge
+        if: failure()
+        run: echo 'Upstream sync failed; no untested merge is deployed. Inspect conflicts or failed checks in this run.' >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,9 @@
+# CI runs generation, typechecking, tests and builds before this image is produced.
+FROM node:24-alpine
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts --omit=dev --no-audit --no-fund && npm cache clean --force
+COPY dist ./dist
+ENV NODE_ENV=production
+USER node
+ENTRYPOINT ["node", "dist/index.js"]
