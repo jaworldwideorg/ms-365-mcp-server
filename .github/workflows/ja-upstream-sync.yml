@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: '17 4 * * *'
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Fork branch to sync (main by default; another branch permits isolated validation)'
+        required: false
+        default: main
+        type: string
 permissions:
   contents: write
   actions: write
@@ -14,10 +20,12 @@ jobs:
     if: github.repository == 'jaworldwideorg/ms-365-mcp-server'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      TARGET_BRANCH: ${{ inputs.target_branch || 'main' }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ inputs.target_branch || 'main' }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -26,6 +34,7 @@ jobs:
       - name: Attempt merge of upstream main
         id: merge
         run: |
+          git check-ref-format --branch "$TARGET_BRANCH"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch https://github.com/softeria/ms-365-mcp-server.git main
@@ -44,7 +53,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git push origin HEAD:main
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
           gh workflow run ja-cicd.yml --ref main -f checkout_ref="$(git rev-parse HEAD)"
       - name: Report blocked merge
         if: failure()

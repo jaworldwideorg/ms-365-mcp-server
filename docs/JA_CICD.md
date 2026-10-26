@@ -12,7 +12,8 @@ the fork's `main` without force-pushing, runs the same checks, and only pushes a
 successful merge. Conflicts/check failures stop the merge and deployment. A
 successful merge explicitly dispatches build/deploy because pushes made with
 `GITHUB_TOKEN` do not trigger ordinary push workflows. Manual dispatch tests sync
-immediately. If upstream is already included, it exits without rebuilding.
+immediately; its optional `target_branch` allows an isolated branch to test the
+actual merge-and-deploy path without changing main. If upstream is already included, it exits without rebuilding.
 
 The upstream npm/release workflows are disabled in this fork; the JA workflows
 own CI and deployment. GitHub scheduled workflows require Actions to remain
