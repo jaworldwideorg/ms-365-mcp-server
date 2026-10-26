@@ -42,3 +42,11 @@ No Entra credentials are checked into Git; updates preserve existing ACA setting
 Evidence is uploaded for every deployment run, including the current/previous image
 and ready revision. To roll back, update the app to the previous image digest and
 restore its prior args (official images do not support `--eager-tools`).
+
+The image is currently kept on one replica because upstream OAuth's two-leg PKCE
+mapping and attachment tickets live in process memory. Restarts can invalidate
+an in-flight login; retry sign-in after deployments. Do not increase replicas
+without validating a shared/stateless PKCE and ticket strategy. Open major SDK
+upgrade PRs are not adopted until merged upstream and passing this fork's checks.
+CI measures tool definitions through the same schema-normalization handler as
+HTTP, without pruning fields or adding per-request measurement overhead.
