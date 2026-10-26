@@ -11,7 +11,7 @@ container['image']=os.environ['DEPLOY_IMAGE']
 container['args']=['--http','3000','--org-mode','--blob-output','--enable-attachment-urls','--discovery','--eager-tools',os.environ['EAGER_NAMES']]
 fd,path=tempfile.mkstemp(suffix='.yaml');os.chmod(path,0o600)
 try:
- with os.fdopen(fd,'w') as file:json.dump({'properties':{'template':app['properties']['template']}},file)
+ with os.fdopen(fd,'w') as file:json.dump({'properties':{'template':app['properties']['template'],'configuration':{key:app['properties']['configuration'][key] for key in ['activeRevisionsMode','ingress','registries'] if key in app['properties']['configuration']}}},file)
  subprocess.run(['az','containerapp','update','-n',os.environ['ACA_APP_NAME'],'-g',os.environ['ACA_RESOURCE_GROUP'],'--yaml',path,'-o','none'],check=True)
 finally:os.unlink(path)
 PYTHON

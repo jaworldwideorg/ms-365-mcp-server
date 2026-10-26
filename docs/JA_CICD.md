@@ -54,3 +54,14 @@ HTTP, without pruning fields or adding per-request measurement overhead.
 The expanded users/contacts/draft seed was measured at 353,344 bytes through the
 HTTP schema-normalization path. Its budget is 400,000 bytes to allow the approved
 expanded scope while remaining well below the earlier context-overflow surface.
+
+## Public endpoint cutover
+
+Softeria now serves `https://microsoft.mcp.oneja.ai/mcp`. Its automatic ACA hostname
+remains available, and the public OAuth and attachment bases use the custom
+hostname. The certificate is reused within `librechat-environment`. DNS CNAME
+`microsoft.mcp` in the `oneja.ai` zone points at the Softeria ACA app.
+The original `mcp-microsoft` app is retained and temporarily stopped; it is not
+deleted. A reconnect/new sign-in is required when replacing the old connector's
+token and tool cache. Existing server names and callbacks must match exactly.
+CI explicitly preserves ingress/certificate bindings when updating the image.
